@@ -1,4 +1,4 @@
-# Image Watermarking with PRC
+# Image Watermarking with PRC :)
 
 [Update] The paper is accepted by ICLR 2025!
 
