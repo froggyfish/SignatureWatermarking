@@ -14,13 +14,13 @@ from src.baseline.treering_watermark import tr_detect, tr_get_noise
 from inversion import stable_diffusion_pipe, generate
 
 parser = argparse.ArgumentParser('Args')
-parser.add_argument('--test_num', type=int, default=10)
+parser.add_argument('--test_num', type=int, default=1) # was 10
 parser.add_argument('--method', type=str, default='prc') # gs, tr, prc
 parser.add_argument('--model_id', type=str, default='stabilityai/stable-diffusion-2-1-base')
 parser.add_argument('--dataset_id', type=str, default='Gustavosta/Stable-Diffusion-Prompts') # coco 
-parser.add_argument('--inf_steps', type=int, default=50)
+parser.add_argument('--inf_steps', type=int, default=10) # was 50
 parser.add_argument('--nowm', type=int, default=0)
-parser.add_argument('--fpr', type=float, default=0.00001)
+parser.add_argument('--fpr', type=float, default=0.001) # was 0.00001
 parser.add_argument('--prc_t', type=int, default=3)
 args = parser.parse_args()
 print(args)
@@ -67,7 +67,7 @@ elif method == 'tr':
     tr_key = '7c3fa99795fe2a0311b3d8c0b283c5509ac849e7f5ec7b3768ca60be8c080fd9_0_10_rand'
     # tr_key = '4145007d1cbd5c3e28876dd866bc278e0023b41eb7af2c6f9b5c4a326cb71f51_0_9_rand'
     print('Loaded TR keys from file')
-else:
+else: # TODO create the next type
     raise NotImplementedError
 
 if dataset_id == 'coco':
@@ -86,6 +86,8 @@ else:
     all_prompts = [sample['Prompt'] for sample in load_dataset(dataset_id)['test']]
 
 prompts = random.sample(all_prompts, test_num)
+for p in prompts:
+    print("Here is a prompt: " + p)
 
 pipe = stable_diffusion_pipe(solver_order=1, model_id=model_id, cache_dir=hf_cache_dir)
 pipe.set_progress_bar_config(disable=True)
@@ -115,7 +117,7 @@ for i in tqdm(range(test_num)):
         elif method == 'tr':
             shape = (1, 4, 64, 64)
             init_latents, _, _ = tr_get_noise(shape, from_file=tr_key, keys_path='keys/')
-        else:
+        else: # TODO add next thing
             raise NotImplementedError
     orig_image, _, _ = generate(prompt=current_prompt,
                                 init_latents=init_latents,
