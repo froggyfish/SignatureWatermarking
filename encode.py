@@ -68,7 +68,8 @@ elif method == 'tr':
     tr_key = '7c3fa99795fe2a0311b3d8c0b283c5509ac849e7f5ec7b3768ca60be8c080fd9_0_10_rand'
     # tr_key = '4145007d1cbd5c3e28876dd866bc278e0023b41eb7af2c6f9b5c4a326cb71f51_0_9_rand'
     print('Loaded TR keys from file')
-# elif method == 'sig': TODO: Add methodology to recover SK (for now just use hardcoded 2187)
+elif method == 'sig':# TODO: Add methodology to recover SK (for now just use hardcoded 2187)
+    print('hii')
 #     gs_watermark = Gaussian_Shading_chacha(ch_factor=1, hw_factor=8, fpr=fpr, user_number=10000)
 #     if not os.path.exists(f'keys/{exp_id}.pkl'):
 #         watermark_m_ori, key_ori, nonce_ori, watermark_ori = gs_watermark.create_watermark_and_return_w()
