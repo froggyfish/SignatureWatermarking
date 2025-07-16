@@ -11,10 +11,11 @@ from tqdm import tqdm
 from src.prc import Detect, Decode
 import src.pseudogaussians as prc_gaussians
 from inversion import stable_diffusion_pipe, exact_inversion
+from encode_signature import SignatureScheme
 
 parser = argparse.ArgumentParser('Args')
 parser.add_argument('--test_num', type=int, default=10)
-parser.add_argument('--method', type=str, default='prc') # gs, tr, prc
+parser.add_argument('--method', type=str, default='sig') # gs, tr, prc, sig
 parser.add_argument('--model_id', type=str, default='stabilityai/stable-diffusion-2-1-base')
 parser.add_argument('--dataset_id', type=str, default='Gustavosta/Stable-Diffusion-Prompts')
 parser.add_argument('--inf_steps', type=int, default=50)
@@ -49,18 +50,27 @@ var = 1.5
 combined_results = []
 for i in tqdm(range(test_num)):
     img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
+    #TODO: Save the de-noise
     reversed_latents = exact_inversion(img,
                                        prompt='',
                                        test_num_inference_steps=args.inf_steps,
                                        inv_order=cur_inv_order,
                                        pipe=pipe
                                        )
-    reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
-    detection_result = Detect(decoding_key, reversed_prc)
-    decoding_result = (Decode(decoding_key, reversed_prc) is not None)
-    combined_result = detection_result or decoding_result
-    combined_results.append(combined_result)
-    print(f'{i:03d}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
+    if(method == 'sig'):
+        scheme = SignatureScheme(target_bytes = 4*64*64//8) 
+        message = b'hi' #TODO: let be param
+        _, signer_public_key = SignatureScheme.generate_keys(2187)
+        detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents)
+        combined_result = detection_result
+        print("Decoding result: watermark detected? " + detection_result)
+    else:
+        reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
+        detection_result = Detect(decoding_key, reversed_prc)
+        decoding_result = (Decode(decoding_key, reversed_prc) is not None)
+        combined_result = detection_result or decoding_result
+        combined_results.append(combined_result)
+        print(f'{i:03d}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
 
 with open('decoded.txt', 'w') as f:
     for result in combined_results:

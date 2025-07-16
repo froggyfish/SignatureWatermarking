@@ -21,7 +21,7 @@ class SignatureScheme:
     Includes Reed-Solomon error correction to handle noisy channels.
     """
 
-    def __init__(self, target_bytes: int = 4*64*64//8):
+    def __init__(self, target_bytes: int = 4*64*64):
         """
         Initializes the scheme with a target payload size.
 
@@ -58,7 +58,11 @@ class SignatureScheme:
 
         # 2. Add Reed-Solomon error correction to the signature.
         rs = galois.ReedSolomon(self.RS_N, self.RS_K)
-        c_encoded = rs.encode(signature_c) # Now 255 bytes long
+        
+        # FIX: Convert bytes to a NumPy array before encoding with Galois.
+        signature_np = np.frombuffer(signature_c, dtype=np.uint8)
+        c_encoded_gf = rs.encode(signature_np) # This is a Galois Field Array
+        c_encoded = bytes(c_encoded_gf) # Convert back to bytes for concatenation
 
         # 3. Hash the message to get long hash 'h'.
         hash_h = self._hash_long(message, self.TARGET_BYTES)
@@ -109,8 +113,11 @@ class SignatureScheme:
         # 5. Decode using Reed-Solomon to correct errors.
         rs = galois.ReedSolomon(self.RS_N, self.RS_K)
         try:
-            # This will fix errors and return the original 96-byte signature.
-            recovered_signature_c = rs.decode(noisy_c_encoded)
+            # FIX: Convert the byte slice to a NumPy array before decoding.
+            noisy_c_encoded_np = np.frombuffer(noisy_c_encoded, dtype=np.uint8)
+            recovered_signature_gf = rs.decode(noisy_c_encoded_np)
+            # FIX: Convert the decoded Galois Field array back to bytes for verification.
+            recovered_signature_c = bytes(recovered_signature_gf)
         except galois.errors.ReedSolomonError:
             # This occurs if there are too many errors to correct.
             return False
@@ -136,7 +143,7 @@ class SignatureScheme:
 if __name__ == "__main__":
     message = b"hi"
     # Note: target_bytes must be 16384 for a 4*64*64*8 bit tensor
-    scheme = SignatureScheme(target_bytes=16384) 
+    scheme = SignatureScheme(target_bytes = 4*64*64//8) 
     signer_private_key, signer_public_key = SignatureScheme.generate_keys(2187)
     
     # 1. Create the codeword tensor.
