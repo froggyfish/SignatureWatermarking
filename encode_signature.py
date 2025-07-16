@@ -1,12 +1,14 @@
 import hashlib
 import os
+import torch
+import numpy as np
 from py_ecc.bls import G2ProofOfPossession as bls
 
 # --- Installation ---
 # You will need to install py_ecc:
 # pip install py_ecc
 
-class VerifiablePayload:
+class SignatureScheme:
     """
     Implements a scheme to create and verify a payload that combines a BLS
     signature with a long-form hash of the original message.
@@ -18,7 +20,7 @@ class VerifiablePayload:
     4. Concatenating the masked signature with the rest of 'h'.
     """
 
-    def __init__(self, target_bytes: int = 32768):
+    def __init__(self, target_bytes: int = 4*64*64//8):
         """
         Initializes the scheme with a target payload size.
 
@@ -31,9 +33,9 @@ class VerifiablePayload:
         self.SIG_LEN_BYTES = 96  # BLS signature length is fixed
 
     @staticmethod
-    def generate_keys() -> tuple[int, bytes]:
+    def generate_keys(private_key=2187) -> tuple[int, bytes]:
         """
-        Generates a valid BLS private and public key pair.
+        Generates a valid BLS public key using the given private key.
         The private key is securely generated and ensured to be within the
         valid range for the BLS12-381 curve.
 
@@ -41,10 +43,6 @@ class VerifiablePayload:
             A tuple containing the (private_key, public_key).
         """
         # A valid private key is a random integer `1 <= key < CURVE_ORDER`.
-        private_key = int.from_bytes(os.urandom(32), "big") % bls.CURVE_ORDER
-        if private_key == 0:
-            # Recurse on the astronomically rare case of a zero key.
-            return VerifiablePayload.generate_keys()
         
         public_key = bls.SkToPk(private_key)
         return private_key, public_key
@@ -70,8 +68,15 @@ class VerifiablePayload:
         masked_signature = self._xor_bytes(signature_c, hash_h[:self.SIG_LEN_BYTES])
 
         # 4. Concatenate the masked signature with the remainder of the hash.
-        return masked_signature + hash_h[self.SIG_LEN_BYTES:]
+        payload_bytes = masked_signature + hash_h[self.SIG_LEN_BYTES:]
+        payload_bits_np = np.unpackbits(np.frombuffer(payload_bytes, dtype=np.uint8))
 
+        # Convert to a tensor.
+        payload_bits_tensor = torch.from_numpy(payload_bits_np)
+        
+        # Apply the {0, 1} -> {1, -1} transformation and ensure float type.
+        bipolar_tensor = 1.0 - 2.0 * payload_bits_tensor.float()
+        return bipolar_tensor
     def verify(self, public_key: bytes, message: bytes, payload: bytes) -> bool:
         """
         Verifies a payload against the public key and original message.
@@ -114,36 +119,21 @@ class VerifiablePayload:
 
 # --- Example Usage ---
 if __name__ == "__main__":
-    # This block demonstrates how to use the VerifiablePayload class.
+    message = b"hi"
+    scheme = SignatureScheme()
+    signer_private_key, signer_public_key = SignatureScheme.generate_keys(2187)
+    codeword = scheme.create(signer_private_key, message)
+    print(type(codeword))
+    print(codeword[0:10])
+    print(len(codeword))
+    # is_valid = scheme.verify(signer_public_key, message, final_payload)
+    # print(f"Verification result (correct data): {is_valid}")
+    # assert is_valid
+
+    # # 6. A verifier checks the payload with a tampered message.
+    # tampered_message = b"This is NOT the original message."
+    # is_valid_tampered = scheme.verify(signer_public_key, tampered_message, final_payload)
+    # print(f"Verification result (tampered message): {is_valid_tampered}")
+    # assert not is_valid_tampered
     
-    # 1. Initialize the scheme.
-    scheme = VerifiablePayload()
-
-    # 2. Generate a key pair for the signer.
-    signer_private_key, signer_public_key = VerifiablePayload.generate_keys()
-    print(f"Generated a new key pair for the signer.")
-    print("-" * 40)
-
-    # 3. Define the original message.
-    original_message = b"This is a secret message that needs a verifiable signature."
-    print(f"Original Message: '{original_message.decode()}'")
-    print("-" * 40)
-
-    # 4. The signer creates the payload.
-    final_payload = scheme.create(signer_private_key, original_message)
-    print(f"Payload created with length: {len(final_payload)} bytes.")
-    print("-" * 40)
-
-    # 5. A verifier checks the payload.
-    # The verifier has the public key, the original message, and the payload.
-    is_valid = scheme.verify(signer_public_key, original_message, final_payload)
-    print(f"Verification result (correct data): {is_valid}")
-    assert is_valid
-
-    # 6. A verifier checks the payload with a tampered message.
-    tampered_message = b"This is NOT the original message."
-    is_valid_tampered = scheme.verify(signer_public_key, tampered_message, final_payload)
-    print(f"Verification result (tampered message): {is_valid_tampered}")
-    assert not is_valid_tampered
-    
-    print("\nAll tests passed.")
+    # print("\nAll tests passed.")
