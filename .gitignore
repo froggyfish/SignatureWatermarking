@@ -162,3 +162,19 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+requirements.txt
+signature_watermark_env/pyvenv.cfg
+signature_watermark_env/Scripts/activate
+signature_watermark_env/Scripts/activate.bat
+signature_watermark_env/Scripts/Activate.ps1
+signature_watermark_env/Scripts/deactivate.bat
+signature_watermark_env/Scripts/pip.exe
+signature_watermark_env/Scripts/pip3.12.exe
+signature_watermark_env/Scripts/pip3.exe
+signature_watermark_env/Scripts/python.exe
+signature_watermark_env/Scripts/pythonw.exe
+results/prc_num_2_steps_50_fpr_1e-05_nowm_0/original_images/0.png
+results/prc_num_2_steps_50_fpr_1e-05_nowm_0/original_images/1.png
+requirements.txt
+keys/prc_num_2_steps_50_fpr_1e-05_nowm_0.pkl
+requirements.txt
