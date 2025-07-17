@@ -58,21 +58,20 @@ class SignatureScheme:
 
         # 2. Add Reed-Solomon error correction to the signature.
         rs = galois.ReedSolomon(self.RS_N, self.RS_K)
-        
-        # FIX: Convert bytes to a NumPy array before encoding with Galois.
         signature_np = np.frombuffer(signature_c, dtype=np.uint8)
-        c_encoded_gf = rs.encode(signature_np) # This is a Galois Field Array
-        c_encoded = bytes(c_encoded_gf) # Convert back to bytes for concatenation
+        c_encoded_gf = rs.encode(signature_np)
+        c_encoded = bytes(c_encoded_gf)
 
-        # 3. Hash the message to get long hash 'h'.
-        hash_h = self._hash_long(message, self.TARGET_BYTES)
+        # 3. Construct the full payload to be masked. This is the encoded
+        #    signature followed by zero-padding.
+        padding = bytes(self.TARGET_BYTES - self.RS_N)
+        payload_to_mask = c_encoded + padding
 
-        # 4. Create the payload before masking.
-        #    (Encoded Signature || Rest of Hash)
-        payload_before_xor = c_encoded + hash_h[self.RS_N:]
-        
-        # 5. Mask the entire payload with the hash.
-        masked_payload = self._xor_bytes(payload_before_xor, hash_h)
+        # 4. Generate the one-time pad by hashing the message.
+        one_time_pad = self._hash_long(message, self.TARGET_BYTES)
+
+        # 5. Mask the payload using the one-time pad.
+        masked_payload = self._xor_bytes(payload_to_mask, one_time_pad)
 
         # 6. Convert the final bytes to a bipolar tensor.
         payload_bits_np = np.unpackbits(np.frombuffer(masked_payload, dtype=np.uint8))
@@ -101,22 +100,20 @@ class SignatureScheme:
         if len(noisy_masked_payload) != self.TARGET_BYTES:
             return False
 
-        # 2. Regenerate the hash 'h' to use as the unmasking key.
-        hash_h = self._hash_long(message, self.TARGET_BYTES)
+        # 2. Regenerate the one-time pad from the original message.
+        one_time_pad = self._hash_long(message, self.TARGET_BYTES)
 
-        # 3. Unmask the payload to reveal the (noisy) encoded signature and hash remainder.
-        noisy_payload_before_xor = self._xor_bytes(noisy_masked_payload, hash_h)
+        # 3. Unmask the payload to reveal the (noisy) encoded signature and padding.
+        noisy_payload_unmasked = self._xor_bytes(noisy_masked_payload, one_time_pad)
         
-        # 4. Extract the noisy encoded signature.
-        noisy_c_encoded = noisy_payload_before_xor[:self.RS_N]
+        # 4. Extract the noisy encoded signature from the start of the payload.
+        noisy_c_encoded = noisy_payload_unmasked[:self.RS_N]
 
         # 5. Decode using Reed-Solomon to correct errors.
         rs = galois.ReedSolomon(self.RS_N, self.RS_K)
         try:
-            # FIX: Convert the byte slice to a NumPy array before decoding.
             noisy_c_encoded_np = np.frombuffer(noisy_c_encoded, dtype=np.uint8)
             recovered_signature_gf = rs.decode(noisy_c_encoded_np)
-            # FIX: Convert the decoded Galois Field array back to bytes for verification.
             recovered_signature_c = bytes(recovered_signature_gf)
         except galois.errors.ReedSolomonError:
             # This occurs if there are too many errors to correct.
@@ -143,12 +140,15 @@ class SignatureScheme:
 if __name__ == "__main__":
     message = b"hi"
     # Note: target_bytes must be 16384 for a 4*64*64*8 bit tensor
-    scheme = SignatureScheme(target_bytes = 4*64*64//8) 
+    scheme = SignatureScheme(target_bytes=16384//8) 
     signer_private_key, signer_public_key = SignatureScheme.generate_keys(2187)
     
     # 1. Create the codeword tensor.
     codeword = scheme.create(signer_private_key, message)
     print(f"Codeword tensor created with shape: {codeword.shape}")
+    # Verify that the end of the tensor is now random-looking, not all 1s
+    print(f"Sample of last 10 values: {codeword.view(-1)[-10:]}")
+
 
     # 2. Simulate a noisy channel by corrupting the tensor.
     noisy_codeword = codeword.clone()
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     bits_to_flip = 500
     flip_indices = torch.randperm(total_bits)[:bits_to_flip]
     noisy_codeword.view(-1)[flip_indices] *= -1
-    print(f"Simulating noisy channel: Flipped {bits_to_flip} bits.")
+    print(f"\nSimulating noisy channel: Flipped {bits_to_flip} bits.")
 
     # 3. Decode the *noisy* codeword and verify the signature.
     # This should succeed because RS code can handle the errors.
