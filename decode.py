@@ -39,8 +39,9 @@ fpr = args.fpr
 prc_t = args.prc_t
 exp_id = f'{method}_num_{test_num}_steps_{args.inf_steps}_fpr_{fpr}_nowm_{nowm}'
 
-with open(f'keys/{exp_id}.pkl', 'rb') as f:
-    encoding_key, decoding_key = pickle.load(f)
+if(method != 'sig'):# TODO: set up key storage for sig (for now ignore for convenience)
+    with open(f'keys/{exp_id}.pkl', 'rb') as f:
+        encoding_key, decoding_key = pickle.load(f)
 
 pipe = stable_diffusion_pipe(solver_order=1, model_id=model_id, cache_dir=hf_cache_dir)
 pipe.set_progress_bar_config(disable=True)

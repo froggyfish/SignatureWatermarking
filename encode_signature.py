@@ -21,7 +21,7 @@ class SignatureScheme:
     Includes Reed-Solomon error correction to handle noisy channels.
     """
 
-    def __init__(self, target_bytes: int = 4*64*64):
+    def __init__(self, target_bytes: int = 4*64*64//8):
         """
         Initializes the scheme with a target payload size.
 
