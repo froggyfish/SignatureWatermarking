@@ -47,20 +47,37 @@ pipe.set_progress_bar_config(disable=True)
 cur_inv_order = 0
 var = 1.5
 combined_results = []
-for i in tqdm(range(test_num)):
-    img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
+
+names = ["blur_15.png", "brightness.png", ]
+
+# for i in tqdm(range(test_num)):
+    # img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
+
+from pathlib import Path
+import torch
+
+input_folder = Path("results_tampered")
+output_folder = Path("tampered_latents")
+output_folder.mkdir(parents=True, exist_ok=True)
+
+for file in input_folder.iterdir():
+    print(file.name)  # or file.path if you need full path
+    # tensor = torch.load(file)
+    img = Image.open(f'results_tampered/{file.name}').convert("RGB")
+    output_file = output_folder / (file.stem + ".pt")
     reversed_latents = exact_inversion(img,
-                                       prompt='',
-                                       test_num_inference_steps=args.inf_steps,
-                                       inv_order=cur_inv_order,
-                                       pipe=pipe
-                                       )
+                                    prompt='',
+                                    test_num_inference_steps=args.inf_steps,
+                                    inv_order=cur_inv_order,
+                                    pipe=pipe
+                                    )
+    torch.save(reversed_latents, output_file)
     reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
     detection_result = Detect(decoding_key, reversed_prc)
     decoding_result = (Decode(decoding_key, reversed_prc) is not None)
     combined_result = detection_result or decoding_result
     combined_results.append(combined_result)
-    print(f'{i:03d}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
+    print(f'{file.name}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
 
 with open('decoded.txt', 'w') as f:
     for result in combined_results:

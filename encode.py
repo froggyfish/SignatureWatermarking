@@ -117,12 +117,13 @@ for i in tqdm(range(test_num)):
             init_latents, _, _ = tr_get_noise(shape, from_file=tr_key, keys_path='keys/')
         else:
             raise NotImplementedError
-    orig_image, _, _ = generate(prompt=current_prompt,
+    orig_image, prompt, initial_noise = generate(prompt=current_prompt,
                                 init_latents=init_latents,
                                 num_inference_steps=args.inf_steps,
                                 solver_order=1,
                                 pipe=pipe
                                 )
     orig_image.save(f'{save_folder}/{i}.png')
+    torch.save(initial_noise, "initial_noise.pt")
 
 print(f'Done generating {method} images')
