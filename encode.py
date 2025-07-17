@@ -120,8 +120,9 @@ for i in tqdm(range(test_num)):
     else:
         if method == 'prc':
             prc_codeword = Encode(encoding_key)
-            
+            print(len(prc_codeword))
             init_latents = prc_gaussians.sample(prc_codeword).reshape(1, 4, 64, 64).to(device)
+            print(init_latents)
         elif method == 'gs':
             init_latents = gs_watermark.truncSampling(watermark_m)
         elif method == 'tr':
@@ -130,13 +131,19 @@ for i in tqdm(range(test_num)):
         elif method == 'sig':
             scheme = SignatureScheme()
             # 2. Generate a key pair for the signer.
-            signer_private_key, signer_public_key = SignatureScheme.generate_keys(2187)
+            signer_private_key, signer_public_key = SignatureScheme.generate_keys(729)
 
             message = b"hi"
-            init_latents = scheme.create(signer_private_key, message).reshape(1, 4, 64, 64).to(device)
-            
+            # print(scheme.create(signer_private_key, message)[0:200])
+            codeword = scheme.create(signer_private_key, message)
+            print(codeword[-1000:])
+            init_latents = prc_gaussians.sample(codeword).reshape(1, 4, 64, 64).to(device)
+            # print(codeword)
+            print(init_latents[0,3,63,0:63])
+
         else:
             raise NotImplementedError
+    # print("STUFF" + current_prompt + " " +)
     orig_image, _, _ = generate(prompt=current_prompt,
                                 init_latents=init_latents,
                                 num_inference_steps=args.inf_steps,
