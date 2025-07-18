@@ -58,6 +58,8 @@ for i in tqdm(range(test_num)):
                                        inv_order=cur_inv_order,
                                        pipe=pipe
                                        )
+    torch.save(reversed_latents, "bryces_latent.pt")
+
     if(method == 'sig'):
         scheme = SignatureScheme(target_bytes = 4*64*64//8) 
         message = b'hi' #TODO: let be param
