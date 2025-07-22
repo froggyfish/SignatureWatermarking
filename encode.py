@@ -26,6 +26,7 @@ args = parser.parse_args()
 print(args)
 
 hf_cache_dir = '/home/xuandong/mnt/hf_models'
+# hf_cache_dir = '/scratch/general/nfs1/u1408332/hf_cache'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n = 4 * 64 * 64  # the length of a PRC codeword
 method = args.method
