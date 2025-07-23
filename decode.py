@@ -58,15 +58,16 @@ for i in tqdm(range(test_num)):
                                        inv_order=cur_inv_order,
                                        pipe=pipe
                                        )
+    #TODO: more robust saving thingie?
     torch.save(reversed_latents, "bryces_latent.pt")
 
     if(method == 'sig'):
         scheme = SignatureScheme(target_bytes = 4*64*64//8) 
         message = b'hi' #TODO: let be param
-        _, signer_public_key = SignatureScheme.generate_keys(2187)
+        _, signer_public_key = SignatureScheme.generate_keys(729)
         detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents)
         combined_result = detection_result
-        print("Decoding result: watermark detected? " + detection_result)
+        print("Detection result: watermark detected? " + detection_result)
     else:
         reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
         detection_result = Detect(decoding_key, reversed_prc)
