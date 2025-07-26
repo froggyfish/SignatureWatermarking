@@ -25,7 +25,6 @@ parser.add_argument('--fpr', type=float, default=0.00001)
 parser.add_argument('--prc_t', type=int, default=3)
 args = parser.parse_args()
 print(args)
-
 hf_cache_dir = '/home/xuandong/mnt/hf_models'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n = 4 * 64 * 64  # the length of a PRC codeword
@@ -134,11 +133,8 @@ for i in tqdm(range(test_num)):
             signer_private_key, signer_public_key = SignatureScheme.generate_keys(729)
 
             message = b"hi"
-            # print(scheme.create(signer_private_key, message)[0:200])
             codeword = scheme.create(signer_private_key, message)
-            # print(codeword[-1000:])
             init_latents = prc_gaussians.sample(codeword).reshape(1, 4, 64, 64).to(device)
-            # print(codeword)
             # print(init_latents[0,3,63,0:63])
 
         else:

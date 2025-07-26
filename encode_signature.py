@@ -87,7 +87,7 @@ class SignatureScheme:
         # 6. Mask the payload using multiplication in the bipolar domain (equivalent to XOR).
         masked_tensor = payload_to_mask_tensor * one_time_pad_tensor
         
-        return masked_tensor.view(4, 64, 64)
+        return masked_tensor
 
     def decode_and_verify(self, public_key: bytes, message: bytes, noisy_tensor: torch.Tensor) -> bool:
         """
@@ -112,6 +112,7 @@ class SignatureScheme:
         
         # 5. Extract the original message from the systematic codeword.
         decoded_message_bits = get_message(self.G, decoded_codeword)
+        
         
         # 6. Extract the original signature bits from the decoded message block.
         signature_bits = decoded_message_bits[:self.SIG_LEN_BYTES * 8]
@@ -143,14 +144,14 @@ if __name__ == "__main__":
     private_key, public_key = SignatureScheme.generate_keys(729)
 
     # --- TEST CASE 1: Verification from your loaded latent tensor ---
-    print("--- TEST CASE 1: Verifying from loaded 'latent.pt' ---")
+    # print("--- TEST CASE 1: Verifying from loaded 'latent.pt' ---")
     
-    latent = torch.load('decode_testing/bryces_latent.pt', map_location='cpu')
+    # latent = torch.load('decode_testing/bryces_latent.pt', map_location='cpu')
     
-    # The decode function now takes the tensor directly
-    print(f"Attempting to decode and verify latent tensor of shape: {latent.shape}")
-    is_valid_from_latent = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=latent)
-    print(f"Verification successful from latent: {is_valid_from_latent}\n")
+    # # The decode function now takes the tensor directly
+    # print(f"Attempting to decode and verify latent tensor of shape: {latent.shape}")
+    # is_valid_from_latent = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=latent)
+    # print(f"Verification successful from latent: {is_valid_from_latent}\n")
 
 
     # --- TEST CASE 2: Controlled High-Noise Test with LDPC ---
@@ -158,12 +159,18 @@ if __name__ == "__main__":
     
     golden_codeword_tensor = scheme.create(private_key, message)
     
+    # Reshape the flat tensor to (4, 64, 64) for the noise test
+    golden_codeword_reshaped = golden_codeword_tensor.view(4, 64, 64)
     
     # Corrupt the tensor by adding Gaussian noise. This is a more realistic
     # simulation of a noisy channel than flipping bits.
     # FIX: Ensure noise is also float64.
-    noise = torch.randn_like(golden_codeword_tensor, dtype=torch.float64) * 0.3 # Add noise with std dev 0.2
-    noisy_tensor = golden_codeword_tensor + noise
+    noise = torch.randn_like(golden_codeword_reshaped, dtype=torch.float64) * 0.3 # Add noise with std dev 0.2
+    for item in golden_codeword_reshaped:
+        for i in item:
+            print(i)
+    noisy_tensor = golden_codeword_reshaped + noise
+    # print(golden_codeword_tensor.shape)
 
     print(f"Added Gaussian noise to the golden tensor.")
 

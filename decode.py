@@ -65,9 +65,12 @@ for i in tqdm(range(test_num)):
         scheme = SignatureScheme(target_bytes = 4*64*64//8) 
         message = b'hi' #TODO: let be param
         _, signer_public_key = SignatureScheme.generate_keys(729)
-        detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents)
+        # Flatten the reversed latents to match the expected input shape for decode_and_verify
+        # Also ensure it's float64 and on CPU since decode_and_verify uses numpy operations
+        reversed_latents_flat = reversed_latents.view(-1).to(torch.float64).cpu()
+        detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents_flat)
         combined_result = detection_result
-        print("Detection result: watermark detected? " + detection_result)
+        print(f"Detection result: watermark detected? {detection_result}")
     else:
         reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
         detection_result = Detect(decoding_key, reversed_prc)
