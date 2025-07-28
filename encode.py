@@ -26,6 +26,8 @@ parser.add_argument('--prc_t', type=int, default=3)
 args = parser.parse_args()
 print(args)
 hf_cache_dir = '/home/xuandong/mnt/hf_models'
+if args.machine == "chpc_kayle":
+    hf_cache_dir = '/uufs/chpc.utah.edu/common/home/u1408332/watermarking/hf_models'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n = 4 * 64 * 64  # the length of a PRC codeword
 method = args.method
@@ -86,6 +88,8 @@ else:
     save_folder = f'./results/{exp_id}/original_images'
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
+if not os.path.exists(save_folder+"_latents"):
+    os.makedirs(save_folder+"_latents")
 print(f'Saving original images to {save_folder}')
 
 random.seed(42)
@@ -146,5 +150,6 @@ for i in tqdm(range(test_num)):
                                 pipe=pipe
                                 )
     orig_image.save(f'{save_folder}/{i}.png')
+    torch.save(init_latents, f'{save_folder}_latents/{i}.pt')
 
 print(f'Done generating {method} images')

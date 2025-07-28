@@ -23,12 +23,15 @@ parser.add_argument('--nowm', type=int, default=0)
 parser.add_argument('--fpr', type=float, default=0.00001)
 parser.add_argument('--prc_t', type=int, default=3)
 parser.add_argument('--image_folder', type=str, default="")
+parser.add_argument('--machine', type=str, default="")
 
 parser.add_argument('--test_path', type=str, default='original_images')
 args = parser.parse_args()
 print(args)
 
 hf_cache_dir = '/home/xuandong/mnt/hf_models'
+if args.machine == "chpc_kayle":
+    hf_cache_dir = '/uufs/chpc.utah.edu/common/home/u1408332/watermarking/hf_models'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n = 4 * 64 * 64  # the length of a PRC codeword
 method = args.method
@@ -63,6 +66,8 @@ for i in tqdm(range(test_num)):
     img = None
     if image_folder == "":
         img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
+        if img.mode == 'RGBA':
+            img = img.convert('RGB')
     else:
         img = Image.open(f'{image_folder}/{custom_images[i]}')
         print("here is I: ", i)
