@@ -23,6 +23,7 @@ parser.add_argument('--inf_steps', type=int, default=50)
 parser.add_argument('--nowm', type=int, default=0)
 parser.add_argument('--fpr', type=float, default=0.00001)
 parser.add_argument('--prc_t', type=int, default=3)
+parser.add_argument('--machine', type=str, default="")
 args = parser.parse_args()
 print(args)
 hf_cache_dir = '/home/xuandong/mnt/hf_models'

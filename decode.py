@@ -67,7 +67,7 @@ for i in tqdm(range(test_num)):
     if image_folder == "":
         img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png').convert('RGB')
     else:
-        img = Image.open(f'{image_folder}/{custom_images[i]}')
+        img = Image.open(f'{image_folder}/{custom_images[i]}').convert('RGB')
         print("here is I: ", i)
     #TODO: Save the de-noise
     if img != None:
