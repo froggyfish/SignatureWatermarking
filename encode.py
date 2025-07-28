@@ -69,14 +69,14 @@ elif method == 'tr':
     print('Loaded TR keys from file')
 elif method == 'sig':# TODO: Add methodology to recover SK (for now just use hardcoded 2187)
     print('hii')
-#     gs_watermark = Gaussian_Shading_chacha(ch_factor=1, hw_factor=8, fpr=fpr, user_number=10000)
-#     if not os.path.exists(f'keys/{exp_id}.pkl'):
-#         watermark_m_ori, key_ori, nonce_ori, watermark_ori = gs_watermark.create_watermark_and_return_w()
-#         with open(f'keys/{exp_id}.pkl', 'wb') as f:
-#             pickle.dump((watermark_m_ori, key_ori, nonce_ori, watermark_ori), f)
-#         with open(f'keys/{exp_id}.pkl', 'rb') as f:
-#             watermark_m, key, nonce, watermark = pickle.load(f)
-#         assert watermark_m.all() == watermark_m_ori.all()
+    gs_watermark = Gaussian_Shading_chacha(ch_factor=1, hw_factor=8, fpr=fpr, user_number=10000)
+    if not os.path.exists(f'keys/{exp_id}.pkl'):
+        watermark_m_ori, key_ori, nonce_ori, watermark_ori = gs_watermark.create_watermark_and_return_w()
+        with open(f'keys/{exp_id}.pkl', 'wb') as f:
+            pickle.dump((watermark_m_ori, key_ori, nonce_ori, watermark_ori), f)
+        with open(f'keys/{exp_id}.pkl', 'rb') as f:
+            watermark_m, key, nonce, watermark = pickle.load(f)
+        assert watermark_m.all() == watermark_m_ori.all()
 else:
     raise NotImplementedError
 
@@ -135,7 +135,6 @@ for i in tqdm(range(test_num)):
             message = b"hi"
             codeword = scheme.create(signer_private_key, message)
             init_latents = prc_gaussians.sample(codeword).reshape(1, 4, 64, 64).to(device)
-            # print(init_latents[0,3,63,0:63])
 
         else:
             raise NotImplementedError
