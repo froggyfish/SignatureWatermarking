@@ -22,6 +22,7 @@ parser.add_argument('--inf_steps', type=int, default=50)
 parser.add_argument('--nowm', type=int, default=0)
 parser.add_argument('--fpr', type=float, default=0.00001)
 parser.add_argument('--prc_t', type=int, default=3)
+parser.add_argument('--image_folder', type=str, default="")
 
 parser.add_argument('--test_path', type=str, default='original_images')
 args = parser.parse_args()
@@ -37,6 +38,7 @@ dataset_id = args.dataset_id
 nowm = args.nowm
 fpr = args.fpr
 prc_t = args.prc_t
+image_folder = args.image_folder
 exp_id = f'{method}_num_{test_num}_steps_{args.inf_steps}_fpr_{fpr}_nowm_{nowm}'
 
 if(method != 'sig'):# TODO: set up key storage for sig (for now ignore for convenience)
@@ -49,35 +51,52 @@ pipe.set_progress_bar_config(disable=True)
 cur_inv_order = 0
 var = 1.5
 combined_results = []
-for i in tqdm(range(test_num)):
-    img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
-    #TODO: Save the de-noise
-    reversed_latents = exact_inversion(img,
-                                       prompt='',
-                                       test_num_inference_steps=args.inf_steps,
-                                       inv_order=cur_inv_order,
-                                       pipe=pipe
-                                       )
-    #TODO: more robust saving thingie?
-    torch.save(reversed_latents, "bryces_latent.pt")
+custom_images = []
 
-    if(method == 'sig'):
-        scheme = SignatureScheme(target_bytes = 4*64*64//8) 
-        message = b'hi' #TODO: let be param
-        _, signer_public_key = SignatureScheme.generate_keys(729)
-        # Flatten the reversed latents to match the expected input shape for decode_and_verify
-        # Also ensure it's float64 and on CPU since decode_and_verify uses numpy operations
-        reversed_latents_flat = reversed_latents.view(-1).to(torch.float64).cpu()
-        detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents_flat)
-        combined_result = detection_result
-        print(f"Detection result: watermark detected? {detection_result}")
+if image_folder != "":
+    for filename in os.listdir(image_folder):
+        if filename.endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
+            custom_images.append(filename)
+
+
+for i in tqdm(range(test_num)):
+    img = None
+    if image_folder == "":
+        img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
     else:
-        reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
-        detection_result = Detect(decoding_key, reversed_prc)
-        decoding_result = (Decode(decoding_key, reversed_prc) is not None)
-        combined_result = detection_result or decoding_result
-        combined_results.append(combined_result)
-        print(f'{i:03d}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
+        img = Image.open(f'{image_folder}/{custom_images[i]}')
+        print("here is I: ", i)
+    #TODO: Save the de-noise
+    if img != None:
+        reversed_latents = exact_inversion(img,
+                                        prompt='',
+                                        test_num_inference_steps=args.inf_steps,
+                                        inv_order=cur_inv_order,
+                                        pipe=pipe
+                                        )
+        #TODO: more robust saving thingie?
+        if not os.path.exists(f'{image_folder}_latents'):
+            os.makedirs(f'{image_folder}_latents')
+        file_name, file_extension = os.path.splitext(custom_images[i])
+        torch.save(reversed_latents, f'{image_folder}_latents/{file_name}_latent.pt')
+
+        if(method == 'sig'):
+            scheme = SignatureScheme(target_bytes = 4*64*64//8) 
+            message = b'hi' #TODO: let be param
+            _, signer_public_key = SignatureScheme.generate_keys(729)
+            # Flatten the reversed latents to match the expected input shape for decode_and_verify
+            # Also ensure it's float64 and on CPU since decode_and_verify uses numpy operations
+            reversed_latents_flat = reversed_latents.view(-1).to(torch.float64).cpu()
+            detection_result = scheme.decode_and_verify(signer_public_key, message, reversed_latents_flat)
+            combined_result = detection_result
+            print(f"Detection result: watermark detected? {detection_result}")
+        else:
+            reversed_prc = prc_gaussians.recover_posteriors(reversed_latents.to(torch.float64).flatten().cpu(), variances=float(var)).flatten().cpu()
+            detection_result = Detect(decoding_key, reversed_prc)
+            decoding_result = (Decode(decoding_key, reversed_prc) is not None)
+            combined_result = detection_result or decoding_result
+            combined_results.append(combined_result)
+            print(f'{i:03d}: Detection: {detection_result}; Decoding: {decoding_result}; Combined: {combined_result}')
 
 with open('decoded.txt', 'w') as f:
     for result in combined_results:
