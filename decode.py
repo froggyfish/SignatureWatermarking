@@ -75,10 +75,15 @@ for i in tqdm(range(test_num)):
                                         pipe=pipe
                                         )
         #TODO: more robust saving thingie?
-        if not os.path.exists(f'{image_folder}_latents'):
-            os.makedirs(f'{image_folder}_latents')
-        file_name, file_extension = os.path.splitext(custom_images[i])
-        torch.save(reversed_latents, f'{image_folder}_latents/{file_name}_latent.pt')
+        if(image_folder == ""):
+            if not os.path.exists(f'results/latents/{exp_id}/{args.test_path}'):
+                os.makedirs(f'results/latents/{exp_id}/{args.test_path}')
+            torch.save(reversed_latents, f'results/latents/{exp_id}/{args.test_path}/{i}_latent.pt')
+        else:
+            if not os.path.exists(f'{image_folder}_latents'):
+                os.makedirs(f'{image_folder}_latents')
+            file_name, file_extension = os.path.splitext(custom_images[i])
+            torch.save(reversed_latents, f'{image_folder}_latents/{file_name}_latent.pt')
 
         if(method == 'sig'):
             scheme = SignatureScheme(target_bytes = 4*64*64//8) 
