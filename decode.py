@@ -65,9 +65,7 @@ if image_folder != "":
 for i in tqdm(range(test_num)):
     img = None
     if image_folder == "":
-        img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png')
-        if img.mode == 'RGBA':
-            img = img.convert('RGB')
+        img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png').convert('RGB')
     else:
         img = Image.open(f'{image_folder}/{custom_images[i]}')
         print("here is I: ", i)
