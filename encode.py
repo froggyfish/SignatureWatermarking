@@ -118,9 +118,11 @@ def seed_everything(seed, workers=False):
 
 # for i in tqdm(range(2)):
 for i in tqdm(range(test_num)):
+    print('starting codeword generation')
     torch.cuda.empty_cache()         # Frees unreferenced memory from the PyTorch caching allocator
     torch.cuda.reset_peak_memory_stats()
     torch.cuda.synchronize()
+    print('finished cuda memory reset')
     seed_everything(i)
     current_prompt = prompts[i]
     if nowm:
