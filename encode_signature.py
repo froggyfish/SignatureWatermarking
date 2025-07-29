@@ -52,6 +52,7 @@ class SignatureScheme:
         """
         # 1. Sign the message
         signature_c = bls.Sign(private_key, message)
+        print(f"Original signature (hex): {signature_c.hex()}")
         
         # 2. Prepare message bits
         ldpc_message_bits = np.zeros(self.k, dtype=np.uint8)
@@ -109,6 +110,7 @@ class SignatureScheme:
         # 5. Reconstruct and verify the signature
         signature_bits = decoded_message_bits[:self.SIG_LEN_BYTES * 8]
         recovered_signature_c = np.packbits(signature_bits).tobytes()
+        print(f"Recovered signature (hex): {recovered_signature_c.hex()}")
         verification_result = bls.Verify(public_key, message, recovered_signature_c)
         
         return verification_result
@@ -123,7 +125,7 @@ class SignatureScheme:
 if __name__ == "__main__":
     # --- Setup ---
     scheme = SignatureScheme()
-    message = b"This is a test message for burst errors."
+    message = b"hi"
     private_key, public_key = SignatureScheme.generate_keys(729)
 
     # --- NEW: Test Case for Burst Noise ---
@@ -134,7 +136,7 @@ if __name__ == "__main__":
     
     # 2. Simulate a burst of errors
     # Create a noise vector that is mostly zeros, with one concentrated burst
-    burst_length = 800  # A long burst of 800 consecutive errors
+    burst_length = 200  # A long burst of 800 consecutive errors
     burst_start = 1000
     burst_intensity = 2.0 # Strong enough to guarantee bit flips
     
@@ -152,3 +154,8 @@ if __name__ == "__main__":
     assert is_valid_burst_noise, "Verification with BURST noise FAILED!"
     
     print("\nControlled burst noise test passed.")
+    print("--- TEST CASE 3: Decoding from 'bryces_latent.pt' ---")
+    latent = torch.load('decode_testing/0_latent.pt', map_location='cpu')
+    print(f"Loaded latent tensor of shape: {latent.shape}")
+    is_valid_from_latent = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=latent)
+    print(f"Verification successful from latent: {is_valid_from_latent}\n")
