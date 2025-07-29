@@ -76,6 +76,7 @@ for i in tqdm(range(test_num)):
         print("here is I: ", i)
     #TODO: Save the de-noise
     if img != None:
+        print('starting inversion process')
         reversed_latents = exact_inversion(img,
                                         prompt='',
                                         test_num_inference_steps=args.inf_steps,
@@ -83,6 +84,7 @@ for i in tqdm(range(test_num)):
                                         pipe=pipe
                                         )
         #TODO: more robust saving thingie?
+        print('finished inversion process :)')
         if(image_folder == ""):
             if not os.path.exists(f'results/latents/{exp_id}/{args.test_path}'):
                 os.makedirs(f'results/latents/{exp_id}/{args.test_path}')
@@ -94,6 +96,7 @@ for i in tqdm(range(test_num)):
             torch.save(reversed_latents, f'{image_folder}_latents/{file_name}_latent.pt')
 
         if(method == 'sig'):
+            print('detecting watermark?')
             scheme = SignatureScheme(target_bytes = 4*64*64//8) 
             message = b'hi' #TODO: let be param
             _, signer_public_key = SignatureScheme.generate_keys(729)
