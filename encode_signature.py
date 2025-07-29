@@ -35,17 +35,18 @@ class SignatureScheme:
         
         # Define the total number of bits in the LDPC codeword.
         # This will be protected by the error correction.
-        # Using a rate 1/4 code (d_v=6, d_c=8 gives rate ~0.25)
-        # Need codeword length divisible by 8
-        self.LDPC_CODEWORD_BITS = 4096
+        # Using a rate 1/8 code (d_v=7, d_c=8 gives rate ~0.125)
+        # Need codeword length divisible by 8 and large enough for 768-bit signature
+        # With rate 1/8, we need at least 768 * 8 = 6144 bits for the codeword
+        self.LDPC_CODEWORD_BITS = 8192  # Increased to accommodate 768-bit signature
 
         if target_bytes * 8 < self.LDPC_CODEWORD_BITS:
             raise ValueError("Target bytes is too small to hold the LDPC codeword.")
 
         # Create the LDPC generator (G) and parity-check (H) matrices.
-        # Use a rate 1/4 code for good error correction (d_v=6, d_c=8 gives rate ~0.25)
+        # Use a rate 1/8 code for better error correction (d_v=7, d_c=8 gives rate ~0.125)
         # Note: d_c must divide the codeword length, so we'll use d_c=8 (8192/8=1024)
-        self.H, self.G = make_ldpc(self.LDPC_CODEWORD_BITS, d_v=6, d_c=8, systematic=True, sparse=True)
+        self.H, self.G = make_ldpc(self.LDPC_CODEWORD_BITS, d_v=7, d_c=8, systematic=True, sparse=True)
         
         # The number of message bits k is the number of COLUMNS in the G matrix.
         self.k = self.G.shape[1]
@@ -80,7 +81,7 @@ class SignatureScheme:
         ldpc_message_bits[:len(signature_bits)] = signature_bits
 
         # 3. Encode the message bits with LDPC. The output is noisy floats.
-        ldpc_codeword_floats = encode(self.G, ldpc_message_bits, snr=100)
+        ldpc_codeword_floats = encode(self.G, ldpc_message_bits, snr= 1000)
         
         # 4. Construct the full payload to be masked, in the bipolar {-1, 1} domain.
         #    FIX: Ensure consistent dtype of float64 for compatibility with Numba.
@@ -175,7 +176,7 @@ class SignatureScheme:
         
         # 4. Decode using LDPC with the soft float values.
         # Try higher SNR and more iterations for better error correction
-        decoded_codeword = decode(self.H, noisy_codeword_floats, snr=2, maxiter=100)
+        decoded_codeword = decode(self.H, noisy_codeword_floats, snr=1, maxiter=600)
         
         # Debug: Print decoded codeword information
         print("DECODED CODEWORD DEBUG:")
@@ -231,7 +232,7 @@ class SignatureScheme:
 
 # --- Example Usage ---
 if __name__ == "__main__":
-
+    print('started')
     # --- Setup ---
     scheme = SignatureScheme()
     message = b"hi"
@@ -278,7 +279,7 @@ if __name__ == "__main__":
     # Corrupt the tensor by adding Gaussian noise. This is a more realistic
     # simulation of a noisy channel than flipping bits.
     # FIX: Ensure noise is also float64.
-    noise = torch.randn_like(golden_codeword_reshaped, dtype=torch.float64) * 0.8 # Add noise with std dev 0.2
+    noise = torch.randn_like(golden_codeword_reshaped, dtype=torch.float64) * 1 # Add noise with std dev 0.2
     # for item in golden_codeword_reshaped:
     #     for i in item:
     #         print(i)

@@ -29,6 +29,8 @@ print(args)
 hf_cache_dir = '/home/xuandong/mnt/hf_models'
 if args.machine == "chpc_kayle":
     hf_cache_dir = '/uufs/chpc.utah.edu/common/home/u1408332/watermarking/hf_models'
+elif args.machine == "chpc_bryce":
+    hf_cache_dir = '/uufs/chpc.utah.edu/common/home/u1090200/SignatureWatermarking/hf_models'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n = 4 * 64 * 64  # the length of a PRC codeword
 method = args.method
