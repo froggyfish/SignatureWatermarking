@@ -142,7 +142,7 @@ for i in tqdm(range(test_num)):
             message = b"hi"
             codeword = scheme.create(signer_private_key, message)
             init_latents = prc_gaussians.sample(codeword).reshape(1, 4, 64, 64).to(device)
-
+            print('blah')
         else:
             raise NotImplementedError
     # print("STUFF" + current_prompt + " " +)
