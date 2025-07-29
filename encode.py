@@ -118,6 +118,9 @@ def seed_everything(seed, workers=False):
 
 # for i in tqdm(range(2)):
 for i in tqdm(range(test_num)):
+    torch.cuda.empty_cache()         # Frees unreferenced memory from the PyTorch caching allocator
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
     seed_everything(i)
     current_prompt = prompts[i]
     if nowm:
@@ -140,7 +143,9 @@ for i in tqdm(range(test_num)):
             signer_private_key, signer_public_key = SignatureScheme.generate_keys(729)
 
             message = b"hi"
-            codeword = scheme.create(signer_private_key, message)
+            # Load the codeword tensor from the saved file
+            codeword = torch.load('codeword.pt')
+            print('Loaded codeword from codeword.pt')
             init_latents = prc_gaussians.sample(codeword).reshape(1, 4, 64, 64).to(device)
             print('blah')
         else:

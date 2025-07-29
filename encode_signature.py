@@ -238,6 +238,12 @@ if __name__ == "__main__":
     message = b"hi"
     private_key, public_key = SignatureScheme.generate_keys(729)
 
+    # Save the BLS signature to a .pt file
+    signature_c = bls.Sign(private_key, message)
+    signature_tensor = torch.frombuffer(signature_c, dtype=torch.uint8)
+    torch.save(signature_tensor, 'signature.pt')
+    print('Saved signature to signature.pt')
+
     # --- TEST CASE 1: Verification from your loaded latent tensor ---
     # print("--- TEST CASE 1: Verifying from loaded 'latent.pt' ---")
     
@@ -272,6 +278,9 @@ if __name__ == "__main__":
     print("--- TEST CASE 2: Verifying with controlled, HIGH noise ---")
     
     golden_codeword_tensor = scheme.create(private_key, message)
+    # Save the codeword tensor to a file
+    torch.save(golden_codeword_tensor, 'codeword.pt')
+    print('Saved codeword to codeword.pt')
     
     # Reshape the flat tensor to (4, 64, 64) for the noise test
     golden_codeword_reshaped = golden_codeword_tensor.view(4, 64, 64)

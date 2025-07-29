@@ -65,6 +65,9 @@ if image_folder != "":
 
 
 for i in tqdm(range(test_num)):
+    torch.cuda.empty_cache()         # Frees unreferenced memory from the PyTorch caching allocator
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
     img = None
     if image_folder == "":
         img = Image.open(f'results/{exp_id}/{args.test_path}/{i}.png').convert('RGB')
