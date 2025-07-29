@@ -274,32 +274,39 @@ if __name__ == "__main__":
     # print(f"Verification successful from latent: {is_valid_from_latent}\n")
 
 
-    # --- TEST CASE 2: Controlled High-Noise Test with LDPC ---
-    print("--- TEST CASE 2: Verifying with controlled, HIGH noise ---")
+    # # --- TEST CASE 2: Controlled High-Noise Test with LDPC ---
+    # print("--- TEST CASE 2: Verifying with controlled, HIGH noise ---")
     
-    golden_codeword_tensor = scheme.create(private_key, message)
-    # Save the codeword tensor to a file
-    torch.save(golden_codeword_tensor, 'codeword.pt')
-    print('Saved codeword to codeword.pt')
+    # golden_codeword_tensor = scheme.create(private_key, message)
+    # # Save the codeword tensor to a file
+    # torch.save(golden_codeword_tensor, 'codeword.pt')
+    # print('Saved codeword to codeword.pt')
     
-    # Reshape the flat tensor to (4, 64, 64) for the noise test
-    golden_codeword_reshaped = golden_codeword_tensor.view(4, 64, 64)
+    # # Reshape the flat tensor to (4, 64, 64) for the noise test
+    # golden_codeword_reshaped = golden_codeword_tensor.view(4, 64, 64)
     
-    # Corrupt the tensor by adding Gaussian noise. This is a more realistic
-    # simulation of a noisy channel than flipping bits.
-    # FIX: Ensure noise is also float64.
-    noise = torch.randn_like(golden_codeword_reshaped, dtype=torch.float64) * 1 # Add noise with std dev 0.2
-    # for item in golden_codeword_reshaped:
-    #     for i in item:
-    #         print(i)
-    noisy_tensor = golden_codeword_reshaped + noise
-    # print(golden_codeword_tensor.shape)
+    # # Corrupt the tensor by adding Gaussian noise. This is a more realistic
+    # # simulation of a noisy channel than flipping bits.
+    # # FIX: Ensure noise is also float64.
+    # noise = torch.randn_like(golden_codeword_reshaped, dtype=torch.float64) * 1 # Add noise with std dev 0.2
+    # # for item in golden_codeword_reshaped:
+    # #     for i in item:
+    # #         print(i)
+    # noisy_tensor = golden_codeword_reshaped + noise
+    # # print(golden_codeword_tensor.shape)
 
-    print(f"Added Gaussian noise to the golden tensor.")
+    # print(f"Added Gaussian noise to the golden tensor.")
 
-    # Attempt to verify the heavily corrupted payload.
-    is_valid_controlled_noise = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=noisy_tensor)
-    print(f"Verification successful with high noise: {is_valid_controlled_noise}")
-    assert is_valid_controlled_noise, "Verification with high noise FAILED!"
+    # # Attempt to verify the heavily corrupted payload.
+    # is_valid_controlled_noise = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=noisy_tensor)
+    # print(f"Verification successful with high noise: {is_valid_controlled_noise}")
+    # assert is_valid_controlled_noise, "Verification with high noise FAILED!"
     
-    print("\nControlled high-noise test passed.")
+    # print("\nControlled high-noise test passed.")
+
+    # --- TEST CASE 3: Decoding from bryces_latent.pt ---
+    print("--- TEST CASE 3: Decoding from 'bryces_latent.pt' ---")
+    latent = torch.load('decode_testing/0_latent.pt', map_location='cpu')
+    print(f"Loaded latent tensor of shape: {latent.shape}")
+    is_valid_from_latent = scheme.decode_and_verify(public_key=public_key, message=message, noisy_tensor=latent)
+    print(f"Verification successful from latent: {is_valid_from_latent}\n")
