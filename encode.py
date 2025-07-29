@@ -140,9 +140,9 @@ for i in tqdm(range(test_num)):
             shape = (1, 4, 64, 64)
             init_latents, _, _ = tr_get_noise(shape, from_file=tr_key, keys_path='keys/')
         elif method == 'sig':
-            scheme = SignatureScheme()
-            # 2. Generate a key pair for the signer.
-            signer_private_key, signer_public_key = SignatureScheme.generate_keys(729)
+            # scheme = SignatureScheme()
+            # # 2. Generate a key pair for the signer.
+            # signer_private_key, signer_public_key = SignatureScheme.generate_keys(729)
 
             message = b"hi"
             # Load the codeword tensor from the saved file
