@@ -20,7 +20,13 @@ class SignatureScheme:
     def __init__(self, target_bytes: int = 4*64*64//8):
         """
         Initializes the scheme with an LDPC code and a fixed interleaver.
+        Ensures all randomness is removed for reproducibility.
         """
+        # --- Set all random seeds for determinism ---
+        import random
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
         # --- LDPC Code Parameters ---
         self.SIG_LEN_BYTES = 96
         # Set LDPC code rate to 1/4: d_v=6, d_c=8 (rate = 1 - d_v/d_c = 0.25)
@@ -49,34 +55,34 @@ class SignatureScheme:
     def create(self, private_key: int, message: bytes) -> torch.Tensor:
         """
         Creates a payload, encodes it with LDPC, and interleaves the result.
+        All randomness is removed for reproducibility.
         """
+        # --- Set all random seeds for determinism ---
+        import random
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
         # 1. Sign the message
         signature_c = bls.Sign(private_key, message)
         print(f"Original signature (hex): {signature_c.hex()}")
-        
         # 2. Prepare message bits
         ldpc_message_bits = np.zeros(self.k, dtype=np.uint8)
         signature_bits = np.unpackbits(np.frombuffer(signature_c, dtype=np.uint8))
         ldpc_message_bits[:len(signature_bits)] = signature_bits
-
         # 3. Encode with LDPC to get the codeword
-        ldpc_codeword_floats = encode(self.G, ldpc_message_bits, snr=10000) 
+        ldpc_codeword_floats = encode(self.G, ldpc_message_bits, snr=10000) # High SNR for deterministic output
         # --- MODIFIED: Apply the interleaver ---
         interleaved_codeword = ldpc_codeword_floats[self.interleaver_map]
-        
         # 4. Construct the full payload
         payload_to_mask_tensor = torch.ones(self.TOTAL_BITS, dtype=torch.float64)
         codeword_tensor = torch.from_numpy(interleaved_codeword).double()
         payload_to_mask_tensor[:self.LDPC_CODEWORD_BITS] = codeword_tensor
-
         # 5. Mask with one-time pad
         one_time_pad_bytes = self._hash_long(message, self.TARGET_BYTES)
         one_time_pad_bits = np.unpackbits(np.frombuffer(one_time_pad_bytes, dtype=np.uint8))
         one_time_pad_tensor = torch.from_numpy(1.0 - 2.0 * one_time_pad_bits).double()
         masked_tensor = payload_to_mask_tensor * one_time_pad_tensor
-        
         self._original_payload_for_comparison = payload_to_mask_tensor.clone()
-        
         return masked_tensor
 
     def decode_and_verify(self, public_key: bytes, message: bytes, noisy_tensor: torch.Tensor) -> bool:
@@ -133,7 +139,7 @@ if __name__ == "__main__":
     
     # 1. Create the ideal, masked tensor
     golden_masked_tensor = scheme.create(private_key, message)
-    
+    torch.save(golden_masked_tensor, "codeword.pt")
     # 2. Simulate a burst of errors
     # Create a noise vector that is mostly zeros, with one concentrated burst
     burst_length = 200  # A long burst of 800 consecutive errors
