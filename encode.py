@@ -95,14 +95,18 @@ if not os.path.exists(save_folder+"_latents"):
     os.makedirs(save_folder+"_latents")
 print(f'Saving original images to {save_folder}')
 
-random.seed(42)
 if dataset_id == 'coco':
     with open('coco/captions_val2017.json') as f:
         all_prompts = [ann['caption'] for ann in json.load(f)['annotations']]
 else:
     all_prompts = [sample['Prompt'] for sample in load_dataset(dataset_id)['test']]
 
+# Set seed for reproducible prompt selection
+random.seed(42)
 prompts = random.sample(all_prompts, test_num)
+print(f"Selected {len(prompts)} prompts for generation:")
+for i, prompt in enumerate(prompts):
+    print(f"  {i}: {prompt[:50]}{'...' if len(prompt) > 50 else ''}")
 
 pipe = stable_diffusion_pipe(solver_order=1, model_id=model_id, cache_dir=hf_cache_dir)
 pipe.set_progress_bar_config(disable=True)

@@ -46,9 +46,20 @@ prc_t = args.prc_t
 image_folder = args.image_folder
 exp_id = f'{method}_num_{test_num}_steps_{args.inf_steps}_fpr_{fpr}_nowm_{nowm}'
 
-if(method != 'sig'):# TODO: set up key storage for sig (for now ignore for convenience)
+if method == 'prc':
     with open(f'keys/{exp_id}.pkl', 'rb') as f:
         encoding_key, decoding_key = pickle.load(f)
+elif method == 'gs':
+    with open(f'keys/{exp_id}.pkl', 'rb') as f:
+        watermark_m, key, nonce, watermark = pickle.load(f)
+elif method == 'tr':
+    # TR uses hardcoded key, no file loading needed
+    pass
+elif method == 'sig':
+    with open(f'keys/{exp_id}.pkl', 'rb') as f:
+        signer_private_key, signer_public_key, message = pickle.load(f)
+else:
+    raise NotImplementedError
 
 pipe = stable_diffusion_pipe(solver_order=1, model_id=model_id, cache_dir=hf_cache_dir)
 pipe.set_progress_bar_config(disable=True)
@@ -98,8 +109,7 @@ for i in tqdm(range(test_num)):
         if(method == 'sig'):
             print('detecting watermark?')
             scheme = SignatureScheme(target_bytes = 4*64*64//8) 
-            message = b'hi' #TODO: let be param
-            _, signer_public_key = SignatureScheme.generate_keys(729)
+            # Use the keys and message loaded from file
             # Flatten the reversed latents to match the expected input shape for decode_and_verify
             # Also ensure it's float64 and on CPU since decode_and_verify uses numpy operations
             reversed_latents_flat = reversed_latents.view(-1).to(torch.float64).cpu()
